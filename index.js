@@ -13,9 +13,10 @@ var defaults = {
     errors: [],
     // Options
     minChar: 8,
+    maxChar:undefined,
     errorMessages: {
-        password_to_short: "The Password is too short",
-        same_as_username: "Your password cannot be the same as your username"
+        password_to_short: "密码太短了",
+        same_as_username: "密码不能和用户名一致"
     },
     scores: [17, 26, 40, 50],
     verdicts: ["很弱", "普通", "中等", "较强", "很棒"],
@@ -34,6 +35,7 @@ var defaults = {
         wordNotEmail: -100,
         wordLength: -100,
         wordSimilarToUsername: -100,
+        wordFormatType:-100,
         wordLowercase: 1,
         wordUppercase: 3,
         wordOneNumber: 3,
@@ -48,6 +50,7 @@ var defaults = {
         wordNotEmail: true,
         wordLength: true,
         wordSimilarToUsername: true,
+        wordFormatType:true,
         wordLowercase: true,
         wordUppercase: true,
         wordOneNumber: true,
@@ -65,10 +68,21 @@ var defaults = {
         wordLength: function (defaults, word, score) {
             var wordlen = word.length,
                 lenScore = Math.pow(wordlen, defaults.raisePower);
-            if (wordlen < defaults.minChar) {
-                lenScore = (lenScore + score);
-                defaults.errors.push(defaults.errorMessages.password_to_short);
+            if (defaults.maxChar===undefined){
+                if(wordlen < defaults.minChar) {
+                    lenScore = (lenScore + score);
+                    defaults.errors.push(defaults.errorMessages.password_to_short);
+                }
+            }else{
+                if(wordlen>defaults.maxChar){
+                    defaults.errors.push(defaults.errorMessages.password_to_short);
+                }
+                if(wordlen < defaults.minChar) {
+                    lenScore = (lenScore + score);
+                    defaults.errors.push(defaults.errorMessages.password_to_short);
+                }
             }
+
             return lenScore;
         },
         wordSimilarToUsername: function (defaults, word, score) {
@@ -77,7 +91,20 @@ var defaults = {
                 defaults.errors.push(defaults.errorMessages.same_as_username);
                 return score;
             }
+
             return true;
+        },
+        wordFormatType: function (defaults,word,score) {
+            return (
+                !(word.match(/([a-zA-Z])/) && word.match(/([0-9])/))
+                &&
+                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([0-9])/))
+                &&
+                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([a-zA-Z])/))
+                )&& score;
+        },
+        wordNotSequence: function (defaults,word,score) {/*@todo:*/
+            return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;
         },
         wordLowercase: function (defaults, word, score) {
             return word.match(/[a-z]/) && score;
@@ -104,9 +131,6 @@ var defaults = {
             return word.match(/([a-zA-Z])/) && word.match(/([0-9])/) && score;
         },
         wordLetterNumberCharCombo: function (defaults, word, score) {
-            return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;
-        },
-        wordNotSequence: function (defaults,word,score) {
             return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;
         }
     },
@@ -179,6 +203,7 @@ pwdStrengthMeter.prototype.calculateScore = function ($el) {
             }
         });
         self.setProgressBar($el, totalScore);
+
         return totalScore;
     };
 
@@ -190,15 +215,13 @@ pwdStrengthMeter.prototype.methods = {
     init: function (settings) {
         var self = this,
             allOptions = $.extend(defaults, settings);
-
         return $(self.options.target).each(function (idx, el) {
-
             var $el = $(el),
                 $progressbar,
                 verdict;
 
             $el.data("pwstrength", allOptions);
-
+            console.log('init data ', $el.data("pwstrength"));
             $el.on("keyup", function (event) {
                 var defaults = $el.data("pwstrength");
                 defaults.errors = [];
@@ -234,7 +257,7 @@ pwdStrengthMeter.prototype.methods = {
     },
 
     destroy: function () {
-        this.each(function (idx, el) {
+        $(this.$el).each(function (idx, el) {
             var $el = $(el);
             $el.parent().find("span.password-verdict").remove();
             $el.parent().find("div.progress").remove();
@@ -254,7 +277,11 @@ pwdStrengthMeter.prototype.methods = {
     },
 
     outputErrorList: function () {
-        this.each(function (idx, el) {
+        var self = this;
+        console.log('oel this',this);
+        $(this.$el).each(function (idx, el) {
+
+            console.log('output erlist el',el);
             var output = '<ul class="error-list">',
                 $el = $(el),
                 errors = $el.data("pwstrength").errors,
