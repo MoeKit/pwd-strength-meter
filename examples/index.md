@@ -8,7 +8,13 @@
 var PSM = require('index');
 var meter = new PSM({
     target:'#password',
-    maxChar:14
+    maxChar:14,
+    errorMessages:{
+        password_to_long:"密码请勿大于14个字符",
+        password_to_short: "密码太短了",
+        same_as_username: "密码不能和用户名一致",
+    },
+    onKeyUp: {"method":"outputErrorList"}
 })
 ````
 
@@ -47,25 +53,22 @@ ameter.pwstrength('destroy')
 ## Error message
 <link rel="stylesheet" href="/src/psm.css">
 ````javascript
-var PSM = require('index');
-var options = {
+var ermPSM = require('index');
+var ermoptions = {
     target:'#password_errormsg',
+    usernameField:'#username_errormsg',
     ruleScores:{
         wordNotSequence:5
     },
-    onKeyUp: function (evt) {
-        console.log(evt);
-        $(evt.target).pwstrength("outputErrorList");
-    }
+    onKeyUp: {"method":"outputErrorList"}
 }
-var ameter = new PSM(options);
-ameter.pwstrength('destroy')
+var erm = new ermPSM(ermoptions);
 ````
 
 <form>
         <fieldset>
             <legend>Please type in your password</legend>
-            User: <input type="text" id="username_destroy" /><br />
+            User: <input type="text" id="username_errormsg" /><br />
             Pass: <input type="password" id="password_errormsg" />
             <div id="messages"></div>
         </fieldset>

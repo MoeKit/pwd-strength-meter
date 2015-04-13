@@ -4,19 +4,19 @@ var $ = require('jquery');
 
 var pwdStrengthMeter=function(options){
     this.$el = $(options.target);
-    this.options = $.extend({}, defaults, options);
-    this.pwstrength(this.options);
+    this.settings = $.extend({}, defaults, options);
+    this.pwstrength(this.settings);
 };
 
 var defaults = {
     target:[],
     errors: [],
-    // Options
     minChar: 8,
-    maxChar:undefined,
+    maxChar: 15,
     errorMessages: {
         password_to_short: "密码太短了",
-        same_as_username: "密码不能和用户名一致"
+        same_as_username: "密码不能和用户名一致",
+        password_to_long: "密码太长了"
     },
     scores: [17, 26, 40, 50],
     verdicts: ["很弱", "普通", "中等", "较强", "很棒"],
@@ -75,7 +75,7 @@ var defaults = {
                 }
             }else{
                 if(wordlen>defaults.maxChar){
-                    defaults.errors.push(defaults.errorMessages.password_to_short);
+                    defaults.errors.push(defaults.errorMessages.password_to_long);
                 }
                 if(wordlen < defaults.minChar) {
                     lenScore = (lenScore + score);
@@ -95,6 +95,7 @@ var defaults = {
             return true;
         },
         wordFormatType: function (defaults,word,score) {
+            console.log('in rule similar');
             return (
                 !(word.match(/([a-zA-Z])/) && word.match(/([0-9])/))
                 &&
@@ -102,6 +103,7 @@ var defaults = {
                 &&
                 !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([a-zA-Z])/))
                 )&& score;
+            defaults.errors.push(defaults.errorMessages.same_as_username);
         },
         wordNotSequence: function (defaults,word,score) {/*@todo:*/
             return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;
@@ -138,13 +140,12 @@ var defaults = {
 };
 
 pwdStrengthMeter.prototype.setProgressBar = function ($el, score) {
-    var defaults = $el.data("pwstrength"),
-        progressbar = defaults.progressbar,
+    var options = $el.data("pwstrength"),
+        progressbar = options.progressbar,
         $verdict;
-
-    if (defaults.showVerdicts) {
-        if (defaults.viewports.verdict) {
-            $verdict = $(defaults.viewports.verdict).find(".password-verdict");
+    if (options.showVerdicts) {
+        if (options.viewports.verdict) {
+            $verdict = $(options.viewports.verdict).find(".password-verdict");
         } else {
             $verdict = $el.parent().find(".password-verdict");
             if ($verdict.length === 0) {
@@ -154,35 +155,35 @@ pwdStrengthMeter.prototype.setProgressBar = function ($el, score) {
         }
     }
 
-    if (score < defaults.scores[0]) {
+    if (score < options.scores[0]) {
         progressbar.addClass("progress-bar-danger").removeClass("progress-bar-warning").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "5%");
-        if (defaults.showVerdicts) {
-            $verdict.text(defaults.verdicts[0]);
+        if (options.showVerdicts) {
+            $verdict.text(options.verdicts[0]);
         }
-    } else if (score >= defaults.scores[0] && score < defaults.scores[1]) {
+    } else if (score >= options.scores[0] && score < options.scores[1]) {
         progressbar.addClass("progress-bar-danger").removeClass("progress-bar-warning").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "25%");
-        if (defaults.showVerdicts) {
-            $verdict.text(defaults.verdicts[1]);
+        if (options.showVerdicts) {
+            $verdict.text(options.verdicts[1]);
         }
-    } else if (score >= defaults.scores[1] && score < defaults.scores[2]) {
+    } else if (score >= options.scores[1] && score < options.scores[2]) {
         progressbar.addClass("progress-bar-warning").removeClass("progress-bar-danger").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "50%");
-        if (defaults.showVerdicts) {
-            $verdict.text(defaults.verdicts[2]);
+        if (options.showVerdicts) {
+            $verdict.text(options.verdicts[2]);
         }
-    } else if (score >= defaults.scores[2] && score < defaults.scores[3]) {
+    } else if (score >= options.scores[2] && score < options.scores[3]) {
         progressbar.addClass("progress-bar-warning").removeClass("progress-bar-danger").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "75%");
-        if (defaults.showVerdicts) {
-            $verdict.text(defaults.verdicts[3]);
+        if (options.showVerdicts) {
+            $verdict.text(options.verdicts[3]);
         }
-    } else if (score >= defaults.scores[3]) {
+    } else if (score >= options.scores[3]) {
         progressbar.addClass("progress-bar-success").removeClass("progress-bar-warning").removeClass("progress-bar-danger");
         progressbar.find(".progress-bar").css("width", "100%");
-        if (defaults.showVerdicts) {
-            $verdict.text(defaults.verdicts[4]);
+        if (options.showVerdicts) {
+            $verdict.text(options.verdicts[4]);
         }
     }
 };
@@ -191,12 +192,12 @@ pwdStrengthMeter.prototype.calculateScore = function ($el) {
         var self = this,
             word = $el.val(),
             totalScore = 0,
-            defaults = $el.data("pwstrength");
+            options = $el.data("pwstrength");
 
-        $.each(defaults.rules, function (rule, active) {
+        $.each(options.rules, function (rule, active) {
             if (active === true) {
-                var score = defaults.ruleScores[rule],
-                    result = defaults.validationRules[rule](defaults, word, score);
+                var score = options.ruleScores[rule],
+                    result = options.validationRules[rule](options, word, score);
                 if (result) {
                     totalScore += result;
                 }
@@ -214,44 +215,45 @@ pwdStrengthMeter.prototype.progressWidget = function () {
 pwdStrengthMeter.prototype.methods = {
     init: function (settings) {
         var self = this,
-            allOptions = $.extend(defaults, settings);
-        return $(self.options.target).each(function (idx, el) {
+            _allOptions = settings;
+        return $(self.settings.target).each(function (idx, el) {
             var $el = $(el),
                 $progressbar,
                 verdict;
 
-            $el.data("pwstrength", allOptions);
-            console.log('init data ', $el.data("pwstrength"));
+            $el.data("pwstrength", _allOptions);
             $el.on("keyup", function (event) {
-                var defaults = $el.data("pwstrength");
-                defaults.errors = [];
+                var options = $el.data("pwstrength");
+                options.errors = [];
                 self.calculateScore.call(self, $el);
-                if ($.isFunction(defaults.onKeyUp)) {
-                    defaults.onKeyUp(event);
+                if ($.isFunction(_allOptions.onKeyUp)) {
+                    options.onKeyUp(event);
+                }
+                if ($.isPlainObject(_allOptions.onKeyUp)) {
+                    self.pwstrength(_allOptions.onKeyUp['method']);
                 }
             });
 
             $progressbar = $(self.progressWidget());
 
-            if (allOptions.viewports.progress) {
-                $(allOptions.viewports.progress).append($progressbar);
+            if (_allOptions.viewports.progress) {
+                $(_allOptions.viewports.progress).append($progressbar);
             } else {
                 $progressbar.insertAfter($el);
             }
             $progressbar.find(".progress-bar").css("width", "0%");
             $el.data("pwstrength").progressbar = $progressbar;
-
-            if (allOptions.showVerdicts) {
-                verdict = $('<span class="password-verdict">' + allOptions.verdicts[0] + '</span>');
-                if (allOptions.viewports.verdict) {
-                    $(allOptions.viewports.verdict).append(verdict);
+            if (_allOptions.showVerdicts) {
+                verdict = $('<span class="password-verdict">' + _allOptions.verdicts[0] + '</span>');
+                if (_allOptions.viewports.verdict) {
+                    $(_allOptions.viewports.verdict).append(verdict);
                 } else {
                     verdict.insertAfter($el);
                 }
             }
 
-            if ($.isFunction(allOptions.onLoad)) {
-                allOptions.onLoad();
+            if ($.isFunction(_allOptions.onLoad)) {
+                _allOptions.onLoad();
             }
         });
     },
@@ -268,63 +270,63 @@ pwdStrengthMeter.prototype.methods = {
 
     forceUpdate: function () {
         var self = this;
-        this.each(function (idx, el) {
+        $(self.$el).each(function (idx, el) {
             var $el = $(el),
-                defaults = $el.data("pwstrength");
-            defaults.errors = [];
+                options = $el.data("pwstrength");
+            options.errors = [];
             self.calculateScore.call(self, $el);
         });
     },
 
-    outputErrorList: function () {
-        var self = this;
-        console.log('oel this',this);
-        $(this.$el).each(function (idx, el) {
+    outputErrorList :function () {
+    var self = this;
 
-            console.log('output erlist el',el);
-            var output = '<ul class="error-list">',
-                $el = $(el),
-                errors = $el.data("pwstrength").errors,
-                viewports = $el.data("pwstrength").viewports,
-                verdict;
-            $el.parent().find("ul.error-list").remove();
-
-            if (errors.length > 0) {
-                $.each(errors, function (i, item) {
-                    output += '<li>' + item + '</li>';
-                });
-                output += '</ul>';
-                if (viewports.errors) {
-                    $(viewports.errors).html(output);
-                } else {
-                    output = $(output);
-                    verdict = $el.parent().find("span.password-verdict");
-                    if (verdict.length > 0) {
-                        el = verdict;
-                    }
-                    output.insertAfter(el);
+    $(self.$el).each(function (idx, el) {
+        var output = '<ul class="error-list">',
+            $el = $(el),
+            errors = $el.data("pwstrength").errors,
+            viewports = $el.data("pwstrength").viewports,
+            verdict;
+        $el.parent().find("ul.error-list").remove();
+        if (errors.length > 0) {
+            $.each(errors, function (i, item) {
+                output += '<li>' + item + '</li>';
+            });
+            output += '</ul>';
+            if (viewports.errors) {
+                $(viewports.errors).html(output);
+            } else {
+                output = $(output);
+                verdict = $el.parent().find("span.password-verdict");
+                if (verdict.length > 0) {
+                    el = verdict;
                 }
+                output.insertAfter(el);
             }
-        });
-    },
+        }
+    });
+},
 
     addRule: function (name, method, score, active) {
-        this.each(function (idx, el) {
-            var defaults = $(el).data("pwstrength");
-            defaults.rules[name] = active;
-            defaults.ruleScores[name] = score;
-            defaults.validationRules[name] = method;
+        var self = this;
+        $(self.$el).each(function (idx, el) {
+            var options = $(el).data("pwstrength");
+            options.rules[name] = active;
+            options.ruleScores[name] = score;
+            options.validationRules[name] = method;
         });
     },
 
     changeScore: function (rule, score) {
-        this.each(function (idx, el) {
+        var self = this;
+        $(self.$el).each(function (idx, el) {
             $(el).data("pwstrength").ruleScores[rule] = score;
         });
     },
 
     ruleActive: function (rule, active) {
-        this.each(function (idx, el) {
+        var self = this;
+        $(self.$el).each(function (idx, el) {
             $(el).data("pwstrength").rules[rule] = active;
         });
     }
@@ -332,6 +334,7 @@ pwdStrengthMeter.prototype.methods = {
 
 pwdStrengthMeter.prototype.pwstrength = function (method) {
     var result;
+
     if (this.methods[method]) {
         result = this.methods[method].apply(this, Array.prototype.slice.call(arguments, 1));
     } else if (typeof method === "object" || !method) {
