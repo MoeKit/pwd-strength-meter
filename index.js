@@ -13,6 +13,7 @@ var defaults = {
     errors: [],
     minChar: 8,
     maxChar: 15,
+    state:false,
     errorMessages: {
         password_to_short: "密码太短了",
         same_as_username: "密码不能和用户名一致",
@@ -36,7 +37,6 @@ var defaults = {
         wordNotEmail: -100,
         wordLength: -100,
         wordSimilarToUsername: -100,
-        wordFormatType:-100,
         wordLowercase: 1,
         wordUppercase: 3,
         wordOneNumber: 3,
@@ -51,7 +51,6 @@ var defaults = {
         wordNotEmail: true,
         wordLength: true,
         wordSimilarToUsername: true,
-        wordFormatType:true,
         wordLowercase: true,
         wordUppercase: true,
         wordOneNumber: true,
@@ -66,24 +65,34 @@ var defaults = {
         wordNotEmail: function (defaults, word, score) {
             return word.match(/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i) && score;
         },
-        wordLength: function (defaults, word, score) {
-            var wordlen = word.length,
-                lenScore = Math.pow(wordlen, defaults.raisePower);
-            if (defaults.maxChar===undefined){
+        wordLength: function (defaults, word, score, notSimpleFormat) {
+            var wordlen = word.length;
+            if (!(word.match(/([a-zA-Z])/) && word.match(/([0-9])/)) &&
+                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([0-9])/)) &&
+                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([a-zA-Z])/))) {
+                defaults.errors.push(defaults.errorMessages.password_format_simple);
                 if(wordlen < defaults.minChar) {
-                    lenScore = (lenScore + score);
                     defaults.errors.push(defaults.errorMessages.password_to_short);
                 }
+                return;
             }else{
-                if(wordlen>defaults.maxChar){
-                    defaults.errors.push(defaults.errorMessages.password_to_long);
-                }
-                if(wordlen < defaults.minChar) {
-                    lenScore = (lenScore + score);
-                    defaults.errors.push(defaults.errorMessages.password_to_short);
+                var lenScore = Math.pow(wordlen, defaults.raisePower);
+                console.log(lenScore);
+                if (defaults.maxChar===undefined){
+                    if(wordlen < defaults.minChar) {
+                        lenScore = (lenScore + score);
+                        defaults.errors.push(defaults.errorMessages.password_to_short);
+                    }
+                }else{
+                    if(wordlen>defaults.maxChar){
+                        defaults.errors.push(defaults.errorMessages.password_to_long);
+                    }
+                    if(wordlen < defaults.minChar) {
+                        lenScore = (lenScore + score);
+                        defaults.errors.push(defaults.errorMessages.password_to_short);
+                    }
                 }
             }
-
             return lenScore;
         },
         wordSimilarToUsername: function (defaults, word, score) {
@@ -92,16 +101,7 @@ var defaults = {
                 defaults.errors.push(defaults.errorMessages.same_as_username);
                 return score;
             }
-
             return true;
-        },
-        wordFormatType: function (defaults,word,score) {
-            if (!(word.match(/([a-zA-Z])/) && word.match(/([0-9])/)) &&
-                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([0-9])/)) &&
-                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([a-zA-Z])/))) {
-                    defaults.errors.push(defaults.errorMessages.password_format_simple);
-                    return score;
-            }
         },
         wordLowercase: function (defaults, word, score) {
             return word.match(/[a-z]/) && score;
@@ -130,8 +130,7 @@ var defaults = {
         wordLetterNumberCharCombo: function (defaults, word, score) {
             return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;
         }
-    },
-    state:false
+    }
 };
 
 pwdStrengthMeter.prototype.setProgressBar = function ($el, score) {
@@ -193,8 +192,10 @@ pwdStrengthMeter.prototype.calculateScore = function ($el) {
             if (active === true) {
                 var score = options.ruleScores[rule],
                     result = options.validationRules[rule](options, word, score);
+                    console.log('prot calc result',rule+' ',result);
                 if (result) {
                     totalScore += result;
+                    console.log('inresult prot calc totalScore',rule+' ',totalScore);
                 }
             }
         });
@@ -246,7 +247,6 @@ pwdStrengthMeter.prototype.methods = {
                     verdict.insertAfter($el);
                 }
             }
-
             if ($.isFunction(_allOptions.onLoad)) {
                 _allOptions.onLoad();
             }
@@ -273,34 +273,34 @@ pwdStrengthMeter.prototype.methods = {
         });
     },
 
-    outputErrorList :function () {
-    var self = this;
+    outputErrorList: function () {
+        var self = this;
 
-    $(self.$el).each(function (idx, el) {
-        var output = '<ul class="error-list">',
-            $el = $(el),
-            errors = $el.data("pwstrength").errors,
-            viewports = $el.data("pwstrength").viewports,
-            verdict;
-        $el.parent().find("ul.error-list").remove();
-        if (errors.length > 0) {
-            $.each(errors, function (i, item) {
-                output += '<li>' + item + '</li>';
-            });
-            output += '</ul>';
-            if (viewports.errors) {
-                $(viewports.errors).html(output);
-            } else {
-                output = $(output);
-                verdict = $el.parent().find("span.password-verdict");
-                if (verdict.length > 0) {
-                    el = verdict;
+        $(self.$el).each(function (idx, el) {
+            var output = '<ul class="error-list">',
+                $el = $(el),
+                errors = $el.data("pwstrength").errors,
+                viewports = $el.data("pwstrength").viewports,
+                verdict;
+            $el.parent().find("ul.error-list").remove();
+            if (errors.length > 0) {
+                $.each(errors, function (i, item) {
+                    output += '<li>' + item + '</li>';
+                });
+                output += '</ul>';
+                if (viewports.errors) {
+                    $(viewports.errors).html(output);
+                } else {
+                    output = $(output);
+                    verdict = $el.parent().find("span.password-verdict");
+                    if (verdict.length > 0) {
+                        el = verdict;
+                    }
+                    output.insertAfter(el);
                 }
-                output.insertAfter(el);
             }
-        }
-    });
-},
+        });
+    },
 
     addRule: function (name, method, score, active) {
         var self = this;
