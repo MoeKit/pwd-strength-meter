@@ -192,10 +192,8 @@ pwdStrengthMeter.prototype.calculateScore = function ($el) {
             if (active === true) {
                 var score = options.ruleScores[rule],
                     result = options.validationRules[rule](options, word, score);
-                    console.log('prot calc result',rule+' ',result);
                 if (result) {
                     totalScore += result;
-                    console.log('inresult prot calc totalScore',rule+' ',totalScore);
                 }
             }
         });
