@@ -37,7 +37,6 @@ var defaults = {
         wordLength: -100,
         wordSimilarToUsername: -100,
         wordFormatType:-100,
-        wordNotSequence:-100,
         wordLowercase: 1,
         wordUppercase: 3,
         wordOneNumber: 3,
@@ -53,7 +52,6 @@ var defaults = {
         wordLength: true,
         wordSimilarToUsername: true,
         wordFormatType:true,
-        wordNotSequence:true,
         wordLowercase: true,
         wordUppercase: true,
         wordOneNumber: true,
@@ -104,29 +102,6 @@ var defaults = {
                     defaults.errors.push(defaults.errorMessages.password_format_simple);
                     return score;
             }
-        },
-        wordNotSequence: function (defaults,word,score) {
-            var repeat=0;
-
-            var ar  =word.split('');
-            console.log('ar',ar);
-            //先判断密码是否单调，再判断重复队列
-            for(var i = 0;i<ar.length;i++){
-                var a,b;
-                if(i==0){
-
-                }else{
-                    a=ar[i-1];
-                    b=ar[i];
-                    if(Math.abs(a-b)===1){
-                        repeat+=1;
-                    }
-                }
-            }
-            if(repeat>=2){
-
-            }
-            //return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;//
         },
         wordLowercase: function (defaults, word, score) {
             return word.match(/[a-z]/) && score;
