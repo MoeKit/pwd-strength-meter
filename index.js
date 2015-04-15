@@ -77,7 +77,6 @@ var defaults = {
                 return;
             }else{
                 var lenScore = Math.pow(wordlen, defaults.raisePower);
-                console.log(lenScore);
                 if (defaults.maxChar===undefined){
                     if(wordlen < defaults.minChar) {
                         lenScore = (lenScore + score);
