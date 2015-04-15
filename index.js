@@ -155,25 +155,25 @@ pwdStrengthMeter.prototype.setProgressBar = function ($el, score) {
             $verdict.text(options.verdicts[0]);
         }
     } else if (score >= options.scores[0] && score < options.scores[1]) {
-        progressbar.addClass("progress-bar-danger").removeClass("progress-bar-warning").removeClass("progress-bar-success");
+        progressbar.addClass("progress-bar-danger").removeClass("progress-bar-warning").removeClass("progress-bar-ok").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "25%");
         if (options.showVerdicts) {
             $verdict.text(options.verdicts[1]);
         }
     } else if (score >= options.scores[1] && score < options.scores[2]) {
-        progressbar.addClass("progress-bar-warning").removeClass("progress-bar-danger").removeClass("progress-bar-success");
+        progressbar.addClass("progress-bar-warning").removeClass("progress-bar-danger").removeClass("progress-bar-ok").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "50%");
         if (options.showVerdicts) {
             $verdict.text(options.verdicts[2]);
         }
     } else if (score >= options.scores[2] && score < options.scores[3]) {
-        progressbar.addClass("progress-bar-warning").removeClass("progress-bar-danger").removeClass("progress-bar-success");
+        progressbar.addClass("progress-bar-ok").removeClass("progress-bar-danger").removeClass("progress-bar-warning").removeClass("progress-bar-success");
         progressbar.find(".progress-bar").css("width", "75%");
         if (options.showVerdicts) {
             $verdict.text(options.verdicts[3]);
         }
     } else if (score >= options.scores[3]) {
-        progressbar.addClass("progress-bar-success").removeClass("progress-bar-warning").removeClass("progress-bar-danger");
+        progressbar.addClass("progress-bar-success").removeClass("progress-bar-warning").removeClass("progress-bar-danger").removeClass("progress-bar-ok");
         progressbar.find(".progress-bar").css("width", "100%");
         if (options.showVerdicts) {
             $verdict.text(options.verdicts[4]);
