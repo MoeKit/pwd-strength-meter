@@ -21,9 +21,11 @@ var meter = new PSM({
     maxChar:14,
     errorMessages:{
         password_to_long:"密码请勿大于14个字符",
-        password_to_short: "密码太短了",
+        password_to_short: "密码需要大于8位",
         same_as_username: "密码不能和用户名一致",
-        password_format_simple:"密码必须至少包含字母、数字、特殊字符其中两项"
+        password_format_simple:"密码必须至少包含字母、数字、特殊字符其中两项",
+        password_has_repeat:"密码不能出现重复3次以上的数字或字母：例如ccc、555",
+        password_is_sequence:"密码不能出现3个以上连续的数字或字母：例如abc、123"
     },
     onKeyUp: {"method":"outputErrorList"}
 })

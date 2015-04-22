@@ -18,7 +18,9 @@ var defaults = {
         password_to_short: "密码太短了",
         same_as_username: "密码不能和用户名一致",
         password_to_long: "密码太长了",
-        password_format_simple:"密码必须至少包含字母、数字、特殊字符其中两项"
+        password_format_simple:"密码必须至少包含字母、数字、特殊字符其中两项",
+        password_has_repeat:"密码不能是重复的数字或字母",
+        password_is_sequence:"密码不能是连续的的数字或字母"
     },
     scores: [17, 26, 40, 50],
     verdicts: ["很弱", "普通", "中等", "较强", "很棒"],
@@ -59,17 +61,18 @@ var defaults = {
         wordTwoSpecialChar: true,
         wordUpperLowerCombo: true,
         wordLetterNumberCombo: true,
-        wordLetterNumberCharCombo: true
+        wordLetterNumberCharCombo: true,
+        wordAsSequence:true
     },
     validationRules: {
         wordNotEmail: function (defaults, word, score) {
             return word.match(/^([\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+\.)*[\w\!\#$\%\&\'\*\+\-\/\=\?\^\`{\|\}\~]+@((((([a-z0-9]{1}[a-z0-9\-]{0,62}[a-z0-9]{1})|[a-z])\.)+[a-z]{2,6})|(\d{1,3}\.){3}\d{1,3}(\:\d{1,5})?)$/i) && score;
         },
-        wordLength: function (defaults, word, score, notSimpleFormat) {
+        wordLength: function (defaults, word, score) {
             var wordlen = word.length;
             if (!(word.match(/([a-zA-Z])/) && word.match(/([0-9])/)) &&
-                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([0-9])/)) &&
-                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~])/) && word.match(/([a-zA-Z])/))) {
+                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-])/) && word.match(/([0-9])/)) &&
+                !(word.match(/([!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-])/) && word.match(/([a-zA-Z])/))) {
                 defaults.errors.push(defaults.errorMessages.password_format_simple);
                 if(wordlen < defaults.minChar) {
                     defaults.errors.push(defaults.errorMessages.password_to_short);
@@ -102,6 +105,49 @@ var defaults = {
             }
             return true;
         },
+        wordAsSequence:function(defaults, word, score){
+            var wordArray = word.split(''),
+                negativeScore= 0,
+                repeatState = false,
+                sequenceState=false;
+
+            function isNumber(n) {
+                return !isNaN(parseFloat(n)) && isFinite(n);
+            }
+            function toCharCode(s){
+                return s.charCodeAt(0)
+            }
+            function wordnumber(n){
+                if((n>=48&&n<=57)||(n>=97&&n<=112)||(n>=65&&n<=90)){
+                    return n;
+                }
+                return undefined
+            }
+
+            var stringValue = wordArray.map(toCharCode);
+            if(stringValue.length<3){
+                return;
+            }
+            for (var i = 0; i < stringValue.length-2; i++) {
+                var s1 = stringValue[i],s2=stringValue[i+1],s3=stringValue[i+2];
+                if(wordnumber(s1)!==undefined&&wordnumber(s2)!==undefined&&wordnumber(s3)!==undefined){
+                    if(wordnumber(s1)===wordnumber(s2)&&wordnumber(s2)===wordnumber(s3)){
+                        if(defaults.errors.indexOf(defaults.errorMessages.password_has_repeat)==-1){
+                            defaults.errors.push(defaults.errorMessages.password_has_repeat);
+                        }
+                        isNumber(score)?negativeScore=(0-Math.abs(score)): negativeScore=-100;
+                    }
+                    if((wordnumber(s1)-wordnumber(s2)===wordnumber(s2)-wordnumber(s3))&&wordnumber(s1)-wordnumber(s2)!==0){
+
+                        if(defaults.errors.indexOf(defaults.errorMessages.password_is_sequence)==-1){
+                            defaults.errors.push(defaults.errorMessages.password_is_sequence);
+                        }
+                        isNumber(score)?negativeScore=(0-Math.abs(score)): negativeScore=-100;
+                    }
+                }
+            }
+            return negativeScore;
+        },
         wordLowercase: function (defaults, word, score) {
             return word.match(/[a-z]/) && score;
         },
@@ -115,10 +161,10 @@ var defaults = {
             return word.match(/(.*[0-9].*[0-9].*[0-9])/) && score;
         },
         wordOneSpecialChar: function (defaults, word, score) {
-            return word.match(/.[!,@,#,$,%,\^,&,*,?,_,~]/) && score;
+            return word.match(/.[!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-]/) && score;
         },
         wordTwoSpecialChar: function (defaults, word, score) {
-            return word.match(/(.*[!,@,#,$,%,\^,&,*,?,_,~].*[!,@,#,$,%,\^,&,*,?,_,~])/) && score;
+            return word.match(/(.*[!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-].*[!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-])/) && score;
         },
         wordUpperLowerCombo: function (defaults, word, score) {
             return word.match(/([a-z].*[A-Z])|([A-Z].*[a-z])/) && score;
@@ -127,7 +173,7 @@ var defaults = {
             return word.match(/([a-zA-Z])/) && word.match(/([0-9])/) && score;
         },
         wordLetterNumberCharCombo: function (defaults, word, score) {
-            return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~])|([!,@,#,$,%,\^,&,*,?,_,~].*[a-zA-Z0-9])/) && score;
+            return word.match(/([a-zA-Z0-9].*[!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-])|([!,@,#,$,%,\^,&,*,?,_,~,\(,\),\+,\=,\-].*[a-zA-Z0-9])/) && score;
         }
     }
 };
