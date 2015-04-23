@@ -10,6 +10,9 @@ label {
   margin-bottom: 5px;
   display: block;
 }
+.password-verdict{
+    display:none;
+}
 </style>
 
 ## Normal usage
